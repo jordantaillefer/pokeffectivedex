@@ -13,7 +13,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      },
+      "bundleIdentifier": "com.jordantaillefer.pokedexnative"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,6 +37,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a81d5056-4de9-40bf-aacf-3281cc414cda"
+      }
     }
   }
 }
