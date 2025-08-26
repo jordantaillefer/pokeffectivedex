@@ -115,13 +115,14 @@ class PokemonAPI {
   }
 
   async searchPokemon(query: string, limit = 20): Promise<PokemonPageResult[]> {
-    // Pour la recherche, on utilise un cache de noms français pour éviter trop d'appels API
-    const cacheKey = 'french_names_cache';
-    let pokemonWithFrenchNames = this.cache.get(cacheKey)?.data;
+    // Pour la recherche, on utilise un cache de tous les Pokémon
+    const cacheKey = 'all_pokemon_cache';
+    let allPokemonData = this.cache.get(cacheKey)?.data;
     
-    if (!pokemonWithFrenchNames) {
-      // Si pas en cache, on récupère les premiers 500 Pokémon pour commencer
-      const allPokemon = await this.getPokemonList(500);
+    if (!allPokemonData) {
+      // Charger TOUS les Pokémon (il y en a environ 1025 actuellement)
+      console.log('Chargement de tous les Pokémon pour la première fois...');
+      const allPokemon = await this.getPokemonList(2000); // Large buffer pour futurs Pokémon
       
       const pokemonPromises = allPokemon.results.map(async (pokemon) => {
         const id = this.extractIdFromUrl(pokemon.url);
@@ -144,19 +145,31 @@ class PokemonAPI {
             generation,
           };
         } catch (error) {
+          console.warn(`Failed to load Pokemon ${pokemon.name}:`, error);
           return null;
         }
       });
 
-      pokemonWithFrenchNames = (await Promise.all(pokemonPromises)).filter(Boolean);
+      allPokemonData = (await Promise.all(pokemonPromises)).filter(Boolean);
+      console.log(`Chargé ${allPokemonData.length} Pokémon au total`);
       
-      // Cache les données pour 1 heure
-      this.cache.set(cacheKey, { data: pokemonWithFrenchNames, timestamp: Date.now() });
+      // Cache les données pour 24 heures
+      this.cache.set(cacheKey, { data: allPokemonData, timestamp: Date.now() });
+      
+      // Sauvegarder aussi dans AsyncStorage pour persister entre les sessions
+      try {
+        await AsyncStorage.setItem(
+          `api_cache_${cacheKey}`,
+          JSON.stringify({ data: allPokemonData, timestamp: Date.now() })
+        );
+      } catch (error) {
+        console.warn('Failed to cache all Pokemon data:', error);
+      }
     }
     
     // Filtrage par nom français ET anglais
     const queryLower = query.toLowerCase();
-    const filtered = (pokemonWithFrenchNames as PokemonPageResult[]).filter(pokemon => 
+    const filtered = (allPokemonData as PokemonPageResult[]).filter(pokemon => 
       pokemon.name.toLowerCase().includes(queryLower) ||
       pokemon.frenchName.toLowerCase().includes(queryLower)
     );
@@ -180,8 +193,36 @@ class PokemonAPI {
   }
 
   private extractGenerationNumber(generationName: string): number {
-    const match = generationName.match(/generation-(\d+)/);
-    return match ? parseInt(match[1], 10) : 1;
+    const romanToNumber: { [key: string]: number } = {
+      'i': 1,
+      'ii': 2,
+      'iii': 3,
+      'iv': 4,
+      'v': 5,
+      'vi': 6,
+      'vii': 7,
+      'viii': 8,
+      'ix': 9
+    };
+
+    const match = generationName.match(/generation-([ivx]+)/);
+    if (match) {
+      return romanToNumber[match[1]] || 1;
+    }
+    
+    // Fallback pour les chiffres arabes si jamais l'API changeait
+    const numberMatch = generationName.match(/generation-(\d+)/);
+    return numberMatch ? parseInt(numberMatch[1], 10) : 1;
+  }
+
+  async preloadAllPokemon(): Promise<void> {
+    try {
+      // Déclencher le chargement de tous les Pokémon sans attendre le résultat
+      // Cela va populer le cache pour les recherches futures
+      this.searchPokemon('', 0); // Query vide pour déclencher le chargement du cache
+    } catch (error) {
+      console.warn('Preload failed:', error);
+    }
   }
 
   async clearCache(): Promise<void> {

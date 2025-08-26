@@ -34,7 +34,58 @@ export function usePokemonList() {
   });
 }
 
-// Hooks pour la recherche Pokémon
+// Hook unifié pour la liste filtrée des Pokémon
+export function useFilteredPokemon(
+  query: string = '',
+  filters?: {
+    types?: string[];
+    generation?: number;
+    limit?: number;
+  }
+) {
+  return useQuery({
+    queryKey: pokemonKeys.search(query, filters),
+    queryFn: async () => {
+      // Récupérer tous les Pokémon depuis le cache
+      const allPokemon = await pokemonAPI.searchPokemon('', 10000); // Query vide pour récupérer tous
+      
+      let filtered = allPokemon;
+      
+      // Filtrage par nom (français ou anglais)
+      if (query.trim().length > 0) {
+        const queryLower = query.toLowerCase();
+        filtered = filtered.filter(pokemon => 
+          pokemon.name.toLowerCase().includes(queryLower) ||
+          pokemon.frenchName.toLowerCase().includes(queryLower)
+        );
+      }
+      
+      // Filtrage par types
+      if (filters?.types && filters.types.length > 0) {
+        filtered = filtered.filter(pokemon => 
+          filters.types!.some(type => pokemon.types.includes(type))
+        );
+      }
+      
+      // Filtrage par génération
+      if (filters?.generation) {
+        filtered = filtered.filter(pokemon => 
+          pokemon.generation === filters.generation
+        );
+      }
+      
+      // Limiter les résultats
+      if (filters?.limit) {
+        filtered = filtered.slice(0, filters.limit);
+      }
+      
+      return filtered;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Hook pour la recherche Pokémon (legacy - pour compatibilité)
 export function usePokemonSearch(
   query: string,
   filters?: {

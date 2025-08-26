@@ -15,8 +15,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { usePokemonSearch, usePokemonTypes, usePokemonList } from '../hooks/usePokemon';
+import { useFilteredPokemon, usePokemonTypes } from '../hooks/usePokemon';
 import type { PokemonSearchResult, PokemonPageResponse } from '../types/pokemon';
+import { translateType } from '../utils/typeTranslations';
 
 export default function SearchScreen() {
   const navigation = useNavigation();
@@ -27,32 +28,17 @@ export default function SearchScreen() {
   // Hooks pour les données
   const { data: types = [] } = usePokemonTypes();
   const { 
-    data: searchResults = [], 
-    isLoading: isSearchLoading, 
-    error: searchError 
-  } = usePokemonSearch(
+    data: filteredPokemon = [], 
+    isLoading, 
+    error 
+  } = useFilteredPokemon(
     searchQuery, 
     {
       types: selectedTypes.length > 0 ? selectedTypes : undefined,
       generation: selectedGeneration,
-      limit: 20,
-    },
-    searchQuery.length >= 2
+      limit: 100, // Augmenté pour voir plus de résultats
+    }
   );
-
-  // Hook pour la liste des Pokémon avec pagination
-  const { 
-    data: pokemonListData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isPokemonListLoading,
-    error: pokemonListError
-  } = usePokemonList();
-
-  const allPokemon = pokemonListData?.pages.flatMap((page: PokemonPageResponse) => page.results) || [];
-  const isLoading = searchQuery.length >= 2 ? isSearchLoading : isPokemonListLoading;
-  const error = searchQuery.length >= 2 ? searchError : pokemonListError;
 
   const handlePokemonPress = (pokemon: PokemonSearchResult) => {
     navigation.navigate('PokemonDetail', {
@@ -72,6 +58,10 @@ export default function SearchScreen() {
   const clearFilters = () => {
     setSelectedTypes([]);
     setSelectedGeneration(undefined);
+  };
+
+  const handleGenerationPress = (generation: number) => {
+    setSelectedGeneration(prev => prev === generation ? undefined : generation);
   };
 
   const renderPokemonItem = ({ item }: { item: PokemonSearchResult }) => (
@@ -97,10 +87,15 @@ export default function SearchScreen() {
         <Text style={styles.pokemonName}>
           {item.frenchName || item.name}
         </Text>
+        {item.frenchName && item.frenchName !== item.name && (
+          <Text style={styles.pokemonEnglishName}>
+            {item.name}
+          </Text>
+        )}
         <View style={styles.typesContainer}>
           {item.types.map((type) => (
             <View key={type} style={[styles.typeChip, styles[`${type}Type` as keyof typeof styles] as any]}>
-              <Text style={styles.typeText}>{type}</Text>
+              <Text style={styles.typeText}>{translateType(type)}</Text>
             </View>
           ))}
         </View>
@@ -135,16 +130,47 @@ export default function SearchScreen() {
           </View>
         </View>
 
+        {/* Filtres par génération */}
         <View style={styles.filtersContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {selectedTypes.length > 0 || selectedGeneration ? (
-              <TouchableOpacity style={styles.clearFilterChip} onPress={clearFilters}>
-                <Text style={styles.clearFilterText}>Effacer filtres</Text>
+            {selectedGeneration && (
+              <TouchableOpacity style={styles.clearFilterChip} onPress={() => setSelectedGeneration(undefined)}>
+                <Text style={styles.clearFilterText}>Effacer génération</Text>
                 <Ionicons name="close" size={16} color="#e74c3c" style={{ marginLeft: 4 }} />
               </TouchableOpacity>
-            ) : null}
+            )}
             
-            {types.slice(0, 6).map((type: string) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((gen) => (
+              <TouchableOpacity
+                key={`gen-${gen}`}
+                style={[
+                  styles.filterChip,
+                  selectedGeneration === gen && styles.activeFilterChip,
+                ]}
+                onPress={() => handleGenerationPress(gen)}
+              >
+                <Text style={[
+                  styles.filterText,
+                  selectedGeneration === gen && styles.activeFilterText,
+                ]}>
+                  Gen {gen}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Filtres par types */}
+        <View style={styles.filtersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {selectedTypes.length > 0 && (
+              <TouchableOpacity style={styles.clearFilterChip} onPress={() => setSelectedTypes([])}>
+                <Text style={styles.clearFilterText}>Effacer types</Text>
+                <Ionicons name="close" size={16} color="#e74c3c" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+            )}
+            
+            {types.map((type: string) => (
               <TouchableOpacity
                 key={type}
                 style={[
@@ -157,14 +183,10 @@ export default function SearchScreen() {
                   styles.filterText,
                   selectedTypes.includes(type) && styles.activeFilterText,
                 ]}>
-                  {type}
+                  {translateType(type)}
                 </Text>
               </TouchableOpacity>
             ))}
-            
-            <TouchableOpacity style={styles.filterChip}>
-              <Text style={styles.filterText}>+ Filtres</Text>
-            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -172,83 +194,45 @@ export default function SearchScreen() {
           {error && (
             <View style={styles.errorContainer}>
               <Ionicons name="warning-outline" size={24} color="#e74c3c" />
-              <Text style={styles.errorText}>Erreur lors de la recherche</Text>
+              <Text style={styles.errorText}>Erreur lors du chargement</Text>
             </View>
           )}
           
-          {searchQuery.length >= 2 ? (
-            <>
-              <View style={styles.resultsHeader}>
-                <Text style={styles.sectionTitle}>
-                  Résultats {isLoading ? '' : `(${searchResults.length})`}
-                </Text>
-                {isLoading && <ActivityIndicator size="small" color="#e74c3c" />}
-              </View>
-              
-              {searchResults.length === 0 && !isLoading && (
-                <View style={styles.noResultsContainer}>
-                  <Ionicons name="search-outline" size={48} color="#ccc" />
-                  <Text style={styles.noResultsText}>Aucun Pokémon trouvé</Text>
-                </View>
-              )}
-              
-              <FlatList
-                data={searchResults}
-                renderItem={renderPokemonItem}
-                keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 20 }}
-              />
-            </>
-          ) : (
-            <>
-              <View style={styles.resultsHeader}>
-                <Text style={styles.sectionTitle}>
-                  Pokédex National {!isLoading && allPokemon.length > 0 && `(${allPokemon.length})`}
-                </Text>
-                {isLoading && <ActivityIndicator size="small" color="#e74c3c" />}
-              </View>
+          <View style={styles.resultsHeader}>
+            <Text style={styles.sectionTitle}>
+              {searchQuery.trim() || selectedTypes.length > 0 || selectedGeneration
+                ? `Résultats ${!isLoading ? `(${filteredPokemon.length})` : ''}`
+                : 'Pokédex National'
+              }
+            </Text>
+            {isLoading && <ActivityIndicator size="small" color="#e74c3c" />}
+          </View>
 
-              <View style={styles.pokemonListHint}>
-                <Text style={styles.pokemonListHintText}>
-                  💡 Tapez au moins 2 caractères pour rechercher par nom français ou anglais
-                </Text>
-              </View>
-
-              <FlatList
-                data={allPokemon}
-                renderItem={renderPokemonItem}
-                keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                onEndReached={() => {
-                  if (hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage();
-                  }
-                }}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={
-                  isFetchingNextPage ? (
-                    <View style={styles.loadingMore}>
-                      <ActivityIndicator size="small" color="#e74c3c" />
-                      <Text style={styles.loadingMoreText}>Chargement...</Text>
-                    </View>
-                  ) : null
-                }
-                ListEmptyComponent={
-                  !isLoading ? (
-                    <View style={styles.noResultsContainer}>
-                      <Ionicons name="alert-circle-outline" size={48} color="#ccc" />
-                      <Text style={styles.noResultsText}>Aucun Pokémon trouvé</Text>
-                      <Text style={styles.noResultsSubtext}>
-                        Vérifiez votre connexion internet
-                      </Text>
-                    </View>
-                  ) : null
-                }
-              />
-            </>
+          {!searchQuery.trim() && selectedTypes.length === 0 && !selectedGeneration && (
+            <View style={styles.pokemonListHint}>
+              <Text style={styles.pokemonListHintText}>
+                💡 Utilisez la recherche ou les filtres pour explorer les Pokémon
+              </Text>
+            </View>
           )}
+
+          {filteredPokemon.length === 0 && !isLoading && (
+            <View style={styles.noResultsContainer}>
+              <Ionicons name="search-outline" size={48} color="#ccc" />
+              <Text style={styles.noResultsText}>Aucun Pokémon trouvé</Text>
+              <Text style={styles.noResultsSubtext}>
+                Essayez de modifier vos filtres ou votre recherche
+              </Text>
+            </View>
+          )}
+          
+          <FlatList
+            data={filteredPokemon}
+            renderItem={renderPokemonItem}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          />
         </View>
       </SafeAreaView>
     </>
@@ -501,8 +485,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 2,
     textTransform: 'capitalize',
+  },
+  pokemonEnglishName: {
+    fontSize: 12,
+    color: '#aaa',
+    marginBottom: 4,
+    fontStyle: 'italic',
+    textTransform: 'lowercase',
   },
   typesContainer: {
     flexDirection: 'row',

@@ -97,42 +97,96 @@ export class PokemonService {
     weakAgainst: string[];
   }> {
     try {
+      // Récupérer toutes les données d'efficacité de type
       const typeEffectiveness = await Promise.all(
         types.map(type => pokemonAPI.getTypeEffectiveness(type))
       );
 
-      const effectiveness = {
-        weakTo: new Set<string>(),
-        resistantTo: new Set<string>(),
-        strongAgainst: new Set<string>(),
-        weakAgainst: new Set<string>(),
-      };
+      // Liste de tous les types possibles
+      const allTypes = [
+        'normal', 'fire', 'water', 'electric', 'grass', 'ice',
+        'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug',
+        'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'
+      ];
 
-      typeEffectiveness.forEach(typeData => {
-        // Faible contre (reçoit des dégâts doublés)
-        typeData.double_damage_from.forEach(type => effectiveness.weakTo.add(type.name));
+      // Calculer les multiplicateurs défensifs (types qui attaquent ce Pokémon)
+      const defensiveMultipliers: { [attackType: string]: number } = {};
+      
+      for (const attackType of allTypes) {
+        let multiplier = 1;
         
-        // Résiste à (reçoit des dégâts réduits)
-        typeData.half_damage_from.forEach(type => effectiveness.resistantTo.add(type.name));
+        // Pour chaque type de défense de ce Pokémon
+        for (let i = 0; i < types.length; i++) {
+          const defenseData = typeEffectiveness[i];
+          
+          // Vérifier l'efficacité de ce type d'attaque contre ce type de défense
+          if (defenseData.double_damage_from.some(t => t.name === attackType)) {
+            multiplier *= 2;
+          } else if (defenseData.half_damage_from.some(t => t.name === attackType)) {
+            multiplier *= 0.5;
+          } else if (defenseData.no_damage_from.some(t => t.name === attackType)) {
+            multiplier = 0;
+          }
+        }
         
-        // Immunisé (no damage)
-        typeData.no_damage_from.forEach(type => effectiveness.resistantTo.add(type.name));
+        defensiveMultipliers[attackType] = multiplier;
+      }
+      
+      // Calculer les multiplicateurs offensifs (types que ce Pokémon attaque)
+      const offensiveMultipliers: { [defendType: string]: number } = {};
+      
+      for (const defendType of allTypes) {
+        let bestMultiplier = 1;
         
-        // Fort contre (inflige des dégâts doublés)
-        typeData.double_damage_to.forEach(type => effectiveness.strongAgainst.add(type.name));
+        // Vérifier chaque type d'attaque de ce Pokémon
+        for (let i = 0; i < types.length; i++) {
+          const attackData = typeEffectiveness[i];
+          let typeMultiplier = 1;
+          
+          if (attackData.double_damage_to.some(t => t.name === defendType)) {
+            typeMultiplier = 2;
+          } else if (attackData.half_damage_to.some(t => t.name === defendType)) {
+            typeMultiplier = 0.5;
+          } else if (attackData.no_damage_to.some(t => t.name === defendType)) {
+            typeMultiplier = 0;
+          }
+          
+          // Prendre le meilleur multiplicateur parmi nos types
+          if (typeMultiplier > bestMultiplier) {
+            bestMultiplier = typeMultiplier;
+          }
+        }
         
-        // Faible contre (inflige des dégâts réduits)
-        typeData.half_damage_to.forEach(type => effectiveness.weakAgainst.add(type.name));
-        
-        // Inefficace contre (no damage)
-        typeData.no_damage_to.forEach(type => effectiveness.weakAgainst.add(type.name));
+        offensiveMultipliers[defendType] = bestMultiplier;
+      }
+      
+      // Classer les types selon leurs multiplicateurs
+      const weakTo: string[] = [];
+      const resistantTo: string[] = [];
+      const strongAgainst: string[] = [];
+      const weakAgainst: string[] = [];
+      
+      Object.entries(defensiveMultipliers).forEach(([type, multiplier]) => {
+        if (multiplier > 1) {
+          weakTo.push(type);
+        } else if (multiplier < 1) {
+          resistantTo.push(type);
+        }
+      });
+      
+      Object.entries(offensiveMultipliers).forEach(([type, multiplier]) => {
+        if (multiplier > 1) {
+          strongAgainst.push(type);
+        } else if (multiplier < 1) {
+          weakAgainst.push(type);
+        }
       });
 
       return {
-        weakTo: Array.from(effectiveness.weakTo),
-        resistantTo: Array.from(effectiveness.resistantTo),
-        strongAgainst: Array.from(effectiveness.strongAgainst),
-        weakAgainst: Array.from(effectiveness.weakAgainst),
+        weakTo,
+        resistantTo,
+        strongAgainst,
+        weakAgainst,
       };
     } catch (error) {
       console.error('Failed to calculate type effectiveness:', error);

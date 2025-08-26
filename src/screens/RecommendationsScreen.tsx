@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTeamRecommendations, useTeams, usePokemonTypes } from '../hooks/usePokemon';
 import type { TeamPokemon } from '../types/pokemon';
+import { translateType } from '../utils/typeTranslations';
 
 export default function RecommendationsScreen() {
   const navigation = useNavigation();
@@ -79,7 +80,7 @@ export default function RecommendationsScreen() {
         <View style={styles.typesContainer}>
           {item.types.map((type) => (
             <View key={type} style={[styles.typeChip, styles[`${type}Type` as keyof typeof styles] as any]}>
-              <Text style={styles.typeText}>{type}</Text>
+              <Text style={styles.typeText}>{translateType(type)}</Text>
             </View>
           ))}
         </View>
@@ -125,7 +126,7 @@ export default function RecommendationsScreen() {
                   styles.typeFilterText,
                   selectedOpponentTypes.includes(type) && styles.activeTypeFilterText,
                 ]}>
-                  {type}
+                  {translateType(type)}
                 </Text>
               </TouchableOpacity>
             ))}

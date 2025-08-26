@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { usePokemonDetail, useTeamRecommendations, useAddPokemonToMainTeam } from '../hooks/usePokemon';
 import { pokemonService } from '../services/pokemonService';
+import { translateType } from '../utils/typeTranslations';
 
 type RouteParams = {
   pokemonId: number;
@@ -180,7 +181,7 @@ export default function PokemonDetailScreen() {
         ) : (
           types.map((type) => (
             <View key={type} style={[styles.typeChip, { backgroundColor: getTypeBackgroundColor(type) }]}>
-              <Text style={styles.typeText}>{type}</Text>
+              <Text style={styles.typeText}>{translateType(type)}</Text>
             </View>
           ))
         )}
@@ -226,7 +227,7 @@ export default function PokemonDetailScreen() {
           <View style={styles.typesContainer}>
             {pokemon.types.map((typeInfo: any) => (
               <View key={typeInfo.type.name} style={styles.typeChipHeader}>
-                <Text style={styles.typeTextHeader}>{typeInfo.type.name}</Text>
+                <Text style={styles.typeTextHeader}>{translateType(typeInfo.type.name)}</Text>
               </View>
             ))}
           </View>
@@ -292,7 +293,7 @@ export default function PokemonDetailScreen() {
                           <View style={styles.recommendationTypes}>
                             {recommendedPokemon.types.map((type: string) => (
                               <View key={type} style={[styles.typeChip, { backgroundColor: '#666' }]}>
-                                <Text style={styles.typeText}>{type}</Text>
+                                <Text style={styles.typeText}>{translateType(type)}</Text>
                               </View>
                             ))}
                           </View>
