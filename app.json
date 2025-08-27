@@ -1,29 +1,54 @@
 {
   "expo": {
-    "name": "pokeffectivedex",
+    "name": "Pokeffectivedex",
     "slug": "pokeffectivedex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "description": "Une application non-lucrative de consultation d'efficacité des types Pokémon pour les dresseurs stratégiques. Pokémon © Nintendo/Creatures Inc./GAME FREAK inc.",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "url": "https://u.expo.dev/74c6db6f-78c6-499e-9743-14196f5e4a33"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pokeffectivedex.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.pokeffectivedex.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "74c6db6f-78c6-499e-9743-14196f5e4a33"
+      }
+    },
+    "owner": "jordantaillefer",
+    "runtimeVersion": "1.0.0"
   }
 }
