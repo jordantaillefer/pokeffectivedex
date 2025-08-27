@@ -7,7 +7,6 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
-  FlatList,
   ActivityIndicator,
   Alert,
   TextInput,
@@ -24,6 +23,7 @@ import {
   useRemovePokemonFromTeam 
 } from '../hooks/usePokemon';
 import type { Team, TeamPokemon } from '../types/pokemon';
+import { translateType } from '../utils/typeTranslations';
 
 export default function TeamsScreen() {
   const navigation = useNavigation();
@@ -31,7 +31,7 @@ export default function TeamsScreen() {
   const [newTeamName, setNewTeamName] = useState('');
 
   // Hooks pour les données
-  const { data: teams = [], isLoading, refetch } = useTeams();
+  const { data: teams = [] } = useTeams();
   const createTeamMutation = useCreateTeam();
   const deleteTeamMutation = useDeleteTeam();
   const setMainTeamMutation = useSetMainTeam();
@@ -118,28 +118,42 @@ export default function TeamsScreen() {
   const renderPokemonSlot = (pokemon: any, index: number, teamId: string) => {
     if (pokemon) {
       return (
-        <TouchableOpacity
-          key={pokemon.id}
-          style={styles.pokemonSlot}
-          onPress={() => handlePokemonPress(pokemon)}
-          onLongPress={() => handleRemovePokemon(teamId, pokemon.id, pokemon.frenchName || pokemon.name)}
-        >
-          {pokemon.sprite ? (
-            <Image
-              source={{ uri: pokemon.sprite }}
-              style={styles.pokemonSlotImage}
-              placeholder="🔍"
-              contentFit="contain"
-            />
-          ) : (
-            <View style={styles.pokemonImagePlaceholder}>
-              <Ionicons name="image-outline" size={20} color="#ccc" />
+        <View key={pokemon.id} style={styles.pokemonSlot}>
+          <TouchableOpacity
+            style={styles.pokemonSlotContent}
+            onPress={() => handlePokemonPress(pokemon)}
+            onLongPress={() => handleRemovePokemon(teamId, pokemon.id, pokemon.frenchName || pokemon.name)}
+          >
+            {pokemon.sprite ? (
+              <Image
+                source={{ uri: pokemon.sprite }}
+                style={styles.pokemonSlotImage}
+                placeholder="🔍"
+                contentFit="contain"
+              />
+            ) : (
+              <View style={styles.pokemonImagePlaceholder}>
+                <Ionicons name="image-outline" size={20} color="#ccc" />
+              </View>
+            )}
+            <Text style={styles.pokemonSlotName} numberOfLines={1}>
+              {pokemon.frenchName || pokemon.name}
+            </Text>
+            <View style={styles.pokemonSlotTypes}>
+              {pokemon.types?.slice(0, 2).map((type: string) => (
+                <View key={type} style={[styles.miniTypeChip, styles[`${type}Type` as keyof typeof styles] as any]}>
+                  <Text style={styles.miniTypeText}>{translateType(type)}</Text>
+                </View>
+              ))}
             </View>
-          )}
-          <Text style={styles.pokemonSlotName} numberOfLines={1}>
-            {pokemon.frenchName || pokemon.name}
-          </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemovePokemon(teamId, pokemon.id, pokemon.frenchName || pokemon.name)}
+          >
+            <Ionicons name="close-circle" size={16} color="#e74c3c" />
+          </TouchableOpacity>
+        </View>
       );
     }
 
@@ -350,8 +364,12 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: '#f1f3f4',
     borderRadius: 8,
-    padding: 8,
     marginBottom: 8,
+    position: 'relative',
+  },
+  pokemonSlotContent: {
+    flex: 1,
+    padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -492,4 +510,59 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
+  removeButton: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pokemonSlotTypes: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+  miniTypeChip: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginHorizontal: 1,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  miniTypeText: {
+    fontSize: 8,
+    color: '#fff',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  // Type colors
+  normalType: { backgroundColor: '#A8A878' },
+  fireType: { backgroundColor: '#F08030' },
+  waterType: { backgroundColor: '#6890F0' },
+  electricType: { backgroundColor: '#F8D030' },
+  grassType: { backgroundColor: '#78C850' },
+  iceType: { backgroundColor: '#98D8D8' },
+  fightingType: { backgroundColor: '#C03028' },
+  poisonType: { backgroundColor: '#A040A0' },
+  groundType: { backgroundColor: '#E0C068' },
+  flyingType: { backgroundColor: '#A890F0' },
+  psychicType: { backgroundColor: '#F85888' },
+  bugType: { backgroundColor: '#A8B820' },
+  rockType: { backgroundColor: '#B8A038' },
+  ghostType: { backgroundColor: '#705898' },
+  dragonType: { backgroundColor: '#7038F8' },
+  darkType: { backgroundColor: '#705848' },
+  steelType: { backgroundColor: '#B8B8D0' },
+  fairyType: { backgroundColor: '#EE99AC' },
 });

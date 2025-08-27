@@ -14,7 +14,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { usePokemonDetail, useTeamRecommendations, useAddPokemonToMainTeam } from '../hooks/usePokemon';
+import { usePokemonDetail, useTeamRecommendations, useAddPokemonToMainTeam, useMainTeam } from '../hooks/usePokemon';
 import { pokemonService } from '../services/pokemonService';
 import { translateType } from '../utils/typeTranslations';
 
@@ -26,7 +26,7 @@ type RouteParams = {
 export default function PokemonDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { pokemonId, pokemonName } = route.params as RouteParams;
+  const { pokemonId } = route.params as RouteParams;
 
   // Hooks pour les données
   const { 
@@ -42,7 +42,11 @@ export default function PokemonDetailScreen() {
     !!pokemonData
   );
 
+  const { data: mainTeam } = useMainTeam();
   const addToTeamMutation = useAddPokemonToMainTeam();
+  
+  // Vérifier si le Pokémon est déjà dans l'équipe principale
+  const isInMainTeam = mainTeam?.pokemon.some(p => p.id === pokemonId) || false;
 
   const handleAddToTeam = async () => {
     if (!pokemonData) return;
@@ -326,18 +330,26 @@ export default function PokemonDetailScreen() {
           <TouchableOpacity 
             style={[
               styles.addToTeamButton,
-              addToTeamMutation.isPending && styles.addToTeamButtonDisabled
+              addToTeamMutation.isPending && styles.addToTeamButtonDisabled,
+              isInMainTeam && styles.alreadyInTeamButton
             ]}
             onPress={handleAddToTeam}
-            disabled={addToTeamMutation.isPending}
+            disabled={addToTeamMutation.isPending || isInMainTeam}
           >
             {addToTeamMutation.isPending ? (
               <ActivityIndicator size="small" color="#fff" />
+            ) : isInMainTeam ? (
+              <Ionicons name="checkmark-circle" size={24} color="#fff" />
             ) : (
               <Ionicons name="add-circle" size={24} color="#fff" />
             )}
             <Text style={styles.addToTeamText}>
-              {addToTeamMutation.isPending ? 'Ajout en cours...' : 'Ajouter à l\'équipe'}
+              {addToTeamMutation.isPending 
+                ? 'Ajout en cours...' 
+                : isInMainTeam 
+                  ? 'Déjà dans l\'équipe' 
+                  : 'Ajouter à l\'équipe'
+              }
             </Text>
           </TouchableOpacity>
         </View>
@@ -628,6 +640,9 @@ const styles = StyleSheet.create({
   addToTeamButtonDisabled: {
     backgroundColor: '#95a5a6',
     opacity: 0.7,
+  },
+  alreadyInTeamButton: {
+    backgroundColor: '#3498db',
   },
   addToTeamText: {
     color: '#fff',
