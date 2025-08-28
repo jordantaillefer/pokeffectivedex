@@ -10,13 +10,12 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFilteredPokemon, usePokemonTypes } from '../hooks/usePokemon';
-import type { PokemonSearchResult, PokemonPageResponse } from '../types/pokemon';
+import type { PokemonSearchResult } from '../types/pokemon';
 import { translateType } from '../utils/typeTranslations';
 
 export default function SearchScreen() {
@@ -53,11 +52,6 @@ export default function SearchScreen() {
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
-  };
-
-  const clearFilters = () => {
-    setSelectedTypes([]);
-    setSelectedGeneration(undefined);
   };
 
   const handleGenerationPress = (generation: number) => {
@@ -118,6 +112,9 @@ export default function SearchScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#999"
+              autoComplete="off"
+              autoCorrect={false}
+              spellCheck={false}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity 

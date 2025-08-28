@@ -65,3 +65,4 @@ npm run web      # Run in web browser
 - **Team Management**: Build teams of up to 6 Pokémon with AsyncStorage persistence
 - **Battle Recommendations**: Suggest team members effective against opponent Pokémon
 - **Multi-language Support**: French and English Pokémon names
+- je veux que maintenant chaque fois que tu essaieras d'acceder a un fichier tu utilises le path relatif comme tu l'as fais ici Read(src/utils/typeTranslations.ts)
